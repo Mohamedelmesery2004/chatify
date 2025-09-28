@@ -4,7 +4,7 @@ import {ENV} from "./env.js";
 export const generateToken = (userId, res) => {
   const token = jwt.sign(
     { userId },
-    ENV.SECRET_KEY,
+    ENV.JWT_SECRET,
     { expiresIn: "7d" }
   );
 
