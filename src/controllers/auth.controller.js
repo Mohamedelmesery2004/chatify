@@ -3,6 +3,8 @@ import User from "../models/User.js";
 import asyncHandler from "express-async-handler";
 import bcrypt from "bcryptjs";
 import {generateToken} from "../lib/utlis.js"
+import {sendWelcomeEmail} from "../emails/emailhandeler.js"
+import {ENV} from "../lib/env.js"
 export const signup = asyncHandler(async (req, res) => {
   const { fullName, password, email } = req.body;
 
@@ -38,4 +40,6 @@ export const signup = asyncHandler(async (req, res) => {
     email: newUser.email,
     profPic: newUser.profPic,
   });
+
+  await sendWelcomeEmail(newUser.email,newUser.fullName,ENV.CLIENT_URL)
 });
