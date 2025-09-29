@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { generateToken } from "../lib/utlis.js";
 import { sendWelcomeEmail } from "../emails/emailhandeler.js";
 import { ENV } from "../lib/env.js";
+import cloudinary from "../lib/cloudenary.js";
 
 export const signup = asyncHandler(async (req, res) => {
   const { fullName, password, email } = req.body;
@@ -46,6 +47,9 @@ export const signup = asyncHandler(async (req, res) => {
 
 export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
+  if (!email || !password) {
+    res.status(statusCode.BAD_REQUEST).json("invalid cradentials");
+  }
   const user = await User.findOne({ email });
   if (!user) {
     res.status(statusCode.BAD_REQUEST).json("invalid cradentials");
@@ -65,7 +69,27 @@ export const login = asyncHandler(async (req, res) => {
   });
 });
 
-export const logout = asyncHandler(async (_,res)=>{
-  res.cookie("jwt","",{maxAge:0})
-  res.status(statusCode.OK).json({msg:"logged out succesfuly"})
-})
+export const logout = asyncHandler(async (_, res) => {
+  res.cookie("jwt", "", { maxAge: 0 });
+  res.status(statusCode.OK).json({ msg: "logged out succesfuly" });
+});
+
+export const updateProfile = asyncHandler(async (req, res) => {
+  const { profPic } = req.body;
+  if (!profPic) {
+    return res
+      .status(statusCode.BAD_REQUEST)
+      .json({ msg: "the field is required" });
+  }
+
+  const userId = req.user._id;
+
+  const uploadedres = await cloudinary.uploader.upload(profPic);
+
+  const updatedUser = await User.findOneAndUpdate(
+    userId,
+    { profPic: uploadedres.secure_url },
+    { new: true }
+  );
+  res.status(statusCode.OK).json(updatedUser)
+});
