@@ -3,9 +3,9 @@ import {ENV} from "./env.js";
 
 cloudinary.config(
     {
-        name:ENV.CLOUDENARY_NAME,
-        secretKey:ENV.CLOUDENARY_SECRET,
-        api_key:ENV.CLOUDENARY_API_KEY
+        cloud_name: ENV.CLOUDENARY_NAME,
+        api_key: ENV.CLOUDENARY_API_KEY,
+        api_secret: ENV.CLOUDENARY_SECRET,
     }   
 )
 
