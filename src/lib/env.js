@@ -12,11 +12,17 @@ export const ENV = {
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
-  ARCJET_KEY: process.env.ARCJET_KEY,
+  // Support both ARJECT_KEY (as in your .env) and ARCJET_KEY
+  ARCJET_KEY: process.env.ARJECT_KEY || process.env.ARCJET_KEY,
   ARCJET_ENV: process.env.ARCJET_ENV,
   CLOUDENARY_SECRET:process.env.CLOUDENARY_SECRET,
   CLOUDENARY_API_KEY:process.env.CLOUDENARY_API_KEY,
   CLOUDENARY_NAME:process.env.CLOUDENARY_NAME,
   ARJECT_ENV:process.env.ARJECT_ENV,
-  ARJECT_KEY:process.env.ARCJET_KEY
+  ARJECT_KEY:process.env.ARJECT_KEY || process.env.ARCJET_KEY,
+  SMTP_HOST: process.env.SMTP_HOST,
+  SMTP_PORT: process.env.SMTP_PORT,
+  SMTP_SECURE: process.env.SMTP_SECURE,
+  SMTP_USER: process.env.SMTP_USER,
+  SMTP_PASS: process.env.SMTP_PASS,
 };
