@@ -6,6 +6,8 @@ import { generateToken } from "../lib/utlis.js";
 import { sendWelcomeEmail } from "../emails/emailhandeler.js";
 import { ENV } from "../lib/env.js";
 import cloudinary from "../lib/cloudenary.js";
+import OTP from "../models/OTP.model.js";
+import { sendEmail } from "../lib/resend.js";
 
 export const signup = asyncHandler(async (req, res) => {
   const { fullName, password, email } = req.body;
@@ -93,3 +95,80 @@ export const updateProfile = asyncHandler(async (req, res) => {
   );
   res.status(statusCode.OK).json(updatedUser)
 });
+
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res
+      .status(statusCode.BAD_REQUEST)
+      .json({ msg: "Email is required" });
+  }
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res
+      .status(statusCode.BAD_REQUEST)
+      .json({ msg: "User not found" });
+  }
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  // Upsert OTP per email to avoid duplicate key error and refresh TTL
+  await OTP.findOneAndUpdate(
+    { email },
+    { otp, createdAt: new Date() },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
+  await sendEmail(email, "Password Reset OTP", `Your OTP is ${otp}`);
+  res.status(statusCode.OK).json({ msg: "OTP sent successfully" });
+});
+
+export const verifyOTP = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) {
+    return res
+      .status(statusCode.BAD_REQUEST)
+      .json({ msg: "Email and OTP are required" });
+  }
+  const otpRecord = await OTP.findOne({ email });
+  if (!otpRecord||Date.now()>otpRecord.createdAt.getTime()+60*60*1000) {
+    return res
+      .status(statusCode.BAD_REQUEST)
+      .json({ msg: "OTP not found or expired" });
+  }
+  if (otpRecord.otp !== otp.toString()) {
+    return res
+      .status(statusCode.BAD_REQUEST)
+      .json({ msg: "Incorrect OTP" });
+  }
+  await OTP.deleteOne({ email });
+  res.status(statusCode.OK).json({ msg: "OTP verified successfully" });
+});
+export const resetPassword = asyncHandler(async (req, res) => {
+    const { email, password, otp } = req.body;
+    if (!email || !password || !otp) {
+      return res
+        .status(statusCode.BAD_REQUEST)
+        .json({ msg: "Email, password and OTP are required" });
+    }
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res
+        .status(statusCode.BAD_REQUEST)
+        .json({ msg: "User not found" });
+    }
+
+    // Validate OTP record (existence, expiry, match)
+    const otpRecord = await OTP.findOne({ email });
+    if (
+      !otpRecord ||
+      Date.now() > otpRecord.createdAt.getTime() + 60 * 60 * 1000 ||
+      otpRecord.otp !== otp.toString()
+    ) {
+      return res
+        .status(statusCode.BAD_REQUEST)
+        .json({ msg: "OTP not found, expired, or incorrect" });
+    }
+
+    const hashedPass = await bcrypt.hash(password, 10);
+    await User.findByIdAndUpdate(user._id, { password: hashedPass });
+    await OTP.deleteOne({ email });
+    res.status(statusCode.OK).json({ msg: "Password reset successfully" });
+  });

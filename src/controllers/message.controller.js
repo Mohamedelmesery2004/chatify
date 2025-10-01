@@ -84,6 +84,11 @@ export const sendMessage = asyncHandler(async(req,res)=>
     }
 
     const newMessage = await Message.create(doc);
+    const receiverSocket = getRecieversSocket(id);
+    if(receiverSocket)
+    {
+        io.to(receiverSocket.id).emit("newMessage",newMessage);
+    }
     return res.status(statusCode.CREATED).json(newMessage);
 });
 
