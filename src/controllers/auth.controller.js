@@ -3,7 +3,7 @@ import asyncHandler from "express-async-handler";
 import { generateToken } from "../lib/utlis.js";
 import { sendWelcomeEmail } from "../emails/emailhandeler.js";
 import { ENV } from "../lib/env.js";
-import { createUser, authenticateUser, updateProfilePicture } from "../services/auth.service.js";
+import { createUser, authenticateUser } from "../services/auth.service.js";
 
 export const signup = asyncHandler(async (req, res) => {
   const { fullName, password, email } = req.body;

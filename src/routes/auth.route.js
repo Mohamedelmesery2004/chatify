@@ -1,5 +1,7 @@
 import express from "express"
-import { signup ,login , logout ,updateProfile, forgotPassword, verifyOTP, resetPassword } from "../controllers/auth.controller.js";
+import { signup ,login , logout  } from "../controllers/auth.controller.js";
+import {forgotPassword, verifyOTP, resetPassword} from "../controllers/password.controller.js";
+import {updateProfile} from "../controllers/updateProfile.controller.js"
 import { protectedRoute } from "../middleware/auth.middleware.js";
 import { arjectProtect } from "../lib/arcjet.js";
 const router = express.Router();
