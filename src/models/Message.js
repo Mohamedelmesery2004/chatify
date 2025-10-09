@@ -13,10 +13,13 @@ const messageSchema = new mongoose.Schema({
   },
   messageType: {
     type: String,
-    enum: ["text", "image", "video", "audio", "file", "poll"],
+    enum: ["text", "image", "video", "audio", "file", "poll","voiceNote","link"],
     default: "text"
   },
   text: String,
+  linkUrl: String,
+  voiceNoteUrl: String,
+  isGif: Boolean,
   mediaUrl: String, // used for image/video/file/audio
   poll: {
     type: {

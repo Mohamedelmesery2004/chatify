@@ -9,6 +9,9 @@ router.use(arjectProtect,protectedRoute)
 router.get("/getallcontacts", getAllContacts)
 router.get("/chatPartners",chatPartners)
 
+
+// User search
+
 // Get paginated messages between the logged-in user and :id
 router.get("/:id", getMessagesBetweenUser)
 

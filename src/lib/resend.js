@@ -2,7 +2,10 @@ import { Resend } from "resend";
 import {ENV} from "./env.js";
 import nodemailer from "nodemailer";
 
-export const resendClient = new Resend(ENV.RESEND_API_KEY);
+// Instantiate Resend client only if an API key is provided. Your code uses SMTP via nodemailer,
+// so this should not be required for normal operation. Guarding prevents crashes on platforms
+// like Vercel when RESEND_API_KEY isn't set.
+export const resendClient = ENV.RESEND_API_KEY ? new Resend(ENV.RESEND_API_KEY) : null;
 export const sender = {
     email:ENV.EMAIL_FROM,
     name:ENV.EMAIL_FROM_NAME

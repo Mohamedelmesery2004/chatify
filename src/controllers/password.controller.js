@@ -7,13 +7,13 @@ export const forgotPassword = asyncHandler(async (req, res) => {
     if (!email) {
       return res
         .status(statusCode.BAD_REQUEST)
-        .json({ msg: "Email is required" });
+        .json({ success: false,data:[ { msg: "Email is required" } ]});
     }
     const result = await requestPasswordReset(email);
     if (!result.ok && result.reason === "USER_NOT_FOUND") {
-      return res.status(statusCode.BAD_REQUEST).json({ msg: "User not found" });
+      return res.status(statusCode.BAD_REQUEST).json({ success: false,data:[ { msg: "User not found" } ]});
     }
-    return res.status(statusCode.OK).json({ msg: "OTP sent successfully" });
+    return res.status(statusCode.OK).json({success:true , data:[{ msg: "OTP sent successfully" }] });
   });
   
   export const verifyOTP = asyncHandler(async (req, res) => {
@@ -21,7 +21,7 @@ export const forgotPassword = asyncHandler(async (req, res) => {
     if (!email || !otp) {
       return res
         .status(statusCode.BAD_REQUEST)
-        .json({ msg: "Email and OTP are required" });
+        .json({ success: false,data:[ { msg: "Email and OTP are required" } ]});
     }
     const result = await validateOtp(email, otp);
     if (!result.ok) {
@@ -29,27 +29,27 @@ export const forgotPassword = asyncHandler(async (req, res) => {
         result.reason === "NOT_FOUND" || result.reason === "EXPIRED"
           ? "OTP not found or expired"
           : "Incorrect OTP";
-      return res.status(statusCode.BAD_REQUEST).json({ msg });
+      return res.status(statusCode.BAD_REQUEST).json({ success: false,data:[ { msg } ]});
     }
     await consumeOtp(email);
-    return res.status(statusCode.OK).json({ msg: "OTP verified successfully" });
+    return res.status(statusCode.OK).json({success:true , data:[{ msg: "OTP verified successfully" }] });
   });
   export const resetPassword = asyncHandler(async (req, res) => {
       const { email, password, otp } = req.body;
       if (!email || !password || !otp) {
         return res
           .status(statusCode.BAD_REQUEST)
-          .json({ msg: "Email, password and OTP are required" });
+          .json({ success: false,data:[ { msg: "Email, password and OTP are required" } ]});
       }
       const result = await resetPasswordWithOtp(email, otp, password);
       if (!result.ok) {
         if (result.reason === "USER_NOT_FOUND") {
-          return res.status(statusCode.BAD_REQUEST).json({ msg: "User not found" });
+          return res.status(statusCode.BAD_REQUEST).json({ success: false,data:[ { msg: "User not found" } ]});
         }
         // Any OTP-related failure
         return res
           .status(statusCode.BAD_REQUEST)
-          .json({ msg: "OTP not found, expired, or incorrect" });
+          .json({ success: false,data:[ { msg: "OTP not found, expired, or incorrect" } ]});
       }
-      return res.status(statusCode.OK).json({ msg: "Password reset successfully" });
+      return res.status(statusCode.OK).json({success:true , data:[{ msg: "Password reset successfully" }] });
     });

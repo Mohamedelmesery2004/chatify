@@ -1,0 +1,11 @@
+import express from "express";
+import { arjectProtect } from "../lib/arcjet.js";
+import { protectedRoute } from "../middleware/auth.middleware.js";
+import {updateProfilePicture,updateName,updateEmail,updateBio} from "../controllers/updateProfile.controller.js";
+const router = express.Router();
+router.use(arjectProtect, protectedRoute);
+router.post("/profile-picture", updateProfilePicture);
+router.post("/name", updateName);
+router.post("/email", updateEmail);
+router.post("/bio", updateBio);
+export default router;

@@ -27,6 +27,17 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
+  bio: {
+    type: String,
+    default: "",
+    required:false,
+    maxlength: [160, "Bio must be at most 160 characters"],
+  },
+  mutedUsers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: undefined,
+  }],
 }, { timestamps: true });
 
 
