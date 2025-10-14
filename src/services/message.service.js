@@ -1,6 +1,5 @@
 import Message from "../models/Message.js";
 import mongoose from "mongoose";
-import cloudinary from "../lib/cloudenary.js";
 import validator from "validator";
 import { findChatPartners } from "./search.services.js";
 export async function listContactsFor(userId) {
@@ -53,24 +52,34 @@ async function listMessagesForUserByType(userId, typeCriteria, projection, { ski
 }
 
 export async function fetchMessagesBetween(userId, otherId, { skip, limit }, type) {
-  const base = {
-    $or: [
-      { sender: userId, receiver: otherId },
-      { sender: otherId, receiver: userId },
-    ],
-  };
-  const criteria = buildTypeCriteria(type);
-  if (criteria) Object.assign(base, criteria);
-  return Message.find(base)
-    .sort({ createdAt: 1 })
-    .skip(skip)
-    .limit(limit);
+  try {
+    const base = {
+      $or: [
+        { sender: userId, receiver: otherId },
+        { sender: otherId, receiver: userId },
+      ],
+    };
+
+    const criteria = buildTypeCriteria(type);
+    if (criteria) Object.assign(base, criteria);
+
+    const messages = await Message.find(base)
+      .sort({ createdAt: 1 })
+      .skip(skip || 0)
+      .limit(limit || 20);
+
+    return { ok: true, messages };
+  } catch (err) {
+    console.error("Error in fetchMessagesBetween:", err);
+    return { ok: false, reason: err.message };
+  }
 }
 
 export async function composeAndStoreMessage({ senderId, receiverId, payload }) {
-  const { text, media, poll, voiceNote, file, video, messageType, linkUrl, isGif } = payload;
+  const { text, mediaUrl, voiceNoteUrl, poll, linkUrl, messageType, isGif } = payload;
 
-  if (!text && !media && !poll && !voiceNote && !file && !video) {
+  // Require at least one valid content field
+  if (!text && !mediaUrl && !voiceNoteUrl && !poll && !linkUrl) {
     return { ok: false, reason: "MISSING_CONTENT" };
   }
 
@@ -89,41 +98,52 @@ export async function composeAndStoreMessage({ senderId, receiverId, payload }) 
     doc.poll = poll;
     doc.messageType = "poll";
   } else if (linkUrl) {
-    // optional link message type
     if (!validator.isURL(String(linkUrl))) {
       return { ok: false, reason: "INVALID_LINK" };
     }
     doc.linkUrl = linkUrl;
     doc.messageType = "link";
-  } else if (media || voiceNote || file || video) {
-    // Decide the type by explicit messageType or by provided field
-    const intendedType = messageType || (voiceNote ? "voiceNote" : file ? "file" : video ? "video" : "audio" /* if raw audio sent in media */) || "image";
-    const raw = media || voiceNote || file || video;
-
-    // Map resource type for Cloudinary
-    const resource_type = intendedType === "image" ? "image" : intendedType === "video" ? "video" : "auto";
-    const upload = await cloudinary.uploader.upload(raw, { resource_type });
-
-    if (intendedType === "voiceNote") {
-      doc.voiceNoteUrl = upload.secure_url;
-      doc.messageType = "voiceNote";
-    } else if (intendedType === "file") {
-      doc.mediaUrl = upload.secure_url;
-      doc.messageType = "file";
-    } else if (intendedType === "video") {
-      doc.mediaUrl = upload.secure_url;
-      doc.messageType = "video";
-    } else if (intendedType === "audio") {
-      doc.mediaUrl = upload.secure_url;
-      doc.messageType = "audio";
-    } else {
-      // default to image
-      doc.mediaUrl = upload.secure_url;
-      doc.messageType = "image";
-      if (isGif === true) doc.isGif = true;
+  } else if (voiceNoteUrl) {
+    // Voice note provided as pre-uploaded URL
+    doc.voiceNoteUrl = voiceNoteUrl;
+    doc.messageType = "voiceNote";
+  } else if (mediaUrl) {
+    // mediaUrl must be accompanied by a valid messageType
+    const validTypes = new Set(["image", "video", "audio", "file"]);
+    const t = messageType && String(messageType);
+    if (!t || !validTypes.has(t)) {
+      return { ok: false, reason: "INVALID_MEDIA_TYPE" };
     }
+    doc.mediaUrl = mediaUrl;
+    doc.messageType = t;
+    if (t === "image" && isGif === true) doc.isGif = true;
   }
 
   const newMessage = await Message.create(doc);
   return { ok: true, message: newMessage };
+}
+
+// Mark messages as read for receiver (current user) in a 1:1 chat with peer
+export async function markMessagesRead(userId, peerId, messageIds) {
+  // Normalize to ObjectId array
+  const ids = messageIds.map((id) => new mongoose.Types.ObjectId(String(id)));
+
+  const filter = {
+    _id: { $in: ids },
+     $or: [
+    {
+      receiver: new mongoose.Types.ObjectId(String(userId)),
+      sender: new mongoose.Types.ObjectId(String(peerId))
+    },
+    {
+      receiver: new mongoose.Types.ObjectId(String(peerId)),
+      sender: new mongoose.Types.ObjectId(String(userId))
+    }
+  ],
+    isRead: { $ne: true },
+  };
+
+  const res = await Message.updateMany(filter, { $set: { isRead: true } });
+  // Return only those that matched (best-effort; some ids may already be read or not belong to this convo)
+  return { ok: true, updatedIds: ids.map((x) => x.toString()) };
 }

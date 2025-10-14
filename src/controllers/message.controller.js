@@ -2,7 +2,7 @@ import statusCode from "http-status";
 import asyncHandler from "express-async-handler";
 import { listContactsFor, parsePagination, isValidObjectId, fetchMessagesBetween, composeAndStoreMessage} from "../services/message.service.js";
 import{findChatPartners} from "../services/search.services.js"
-import { getRecieversSocket, io } from "../lib/soket.js";
+import { io, roomFor } from "../lib/soket.js";
 
 export const getAllContacts = asyncHandler(async (req, res) => {
   const contacts = await listContactsFor(req.user._id);
@@ -36,10 +36,8 @@ export const sendMessage = asyncHandler(async (req, res) => {
     return res.status(statusCode.BAD_REQUEST).json({ success: false,data:[ { msg } ]});
   }
   const newMessage = result.message;
-  const receiverSocket = getRecieversSocket(id);
-  if (receiverSocket) {
-    io.to(receiverSocket.id).emit("newMessage", newMessage);
-  }
+  const room = roomFor(req.user._id, id);
+  io.to(room).emit("message:new", newMessage);
   return res.status(statusCode.CREATED).json({success:true , data:[newMessage]});
 });
 
